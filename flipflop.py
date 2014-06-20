@@ -551,7 +551,7 @@ class Connection(object):
                 cap = self.server.capability.get(name)
                 if cap is not None:
                     outrec.content_data += encode_pair(
-                        name, str(cap).encode('latin-1'))
+                        name, str(cap).encode(self.server.fallback_codec))
 
             outrec.content_length = len(outrec.content_data)
             self.write_record(outrec)
@@ -577,8 +577,8 @@ class Connection(object):
                     while position < inrec.content_length:
                         position, (name, value) = decode_pair(
                             inrec.content_data, position)
-                        req.params[name.decode('latin-1')] = \
-                            value.decode('latin-1')
+                        req.params[name.decode(self.server.fallback_codec)] = \
+                            value.decode(self.server.fallback_codec)
                 else:
                     req.run()
         elif inrec.fcgi_type == FCGI_STDIN:
@@ -749,8 +749,9 @@ class WSGIServer(object):
     # so).
     maxwrite = 8192
 
-    def __init__(self, application):
+    def __init__(self, application, fallback_codec='utf-8'):
         self.application = application
+        self.fallback_codec = fallback_codec
         self.environ = {}
         max_connections = resource.getrlimit(resource.RLIMIT_NOFILE)[0]
         self.capability = {
@@ -801,7 +802,7 @@ class WSGIServer(object):
 
         def write(data):
             if type(data) is str:
-                data = data.encode('latin-1')
+                data = data.encode(self.fallback_codec)
 
             assert type(data) is bytes, 'write() argument must be bytes'
             assert headers_set, 'write() before start_response()'
@@ -818,7 +819,7 @@ class WSGIServer(object):
                         if len(result) == 1:
                             response_headers.append((
                                 b'Content-Length',
-                                str(len(data)).encode('latin-1')))
+                                str(len(data)).encode(self.fallback_codec)))
                     except:
                         pass
                 string = b'Status: ' + status + b'\r\n'
@@ -843,7 +844,7 @@ class WSGIServer(object):
                 assert not headers_set, 'Headers already set!'
 
             if isinstance(status, str):
-                status = status.encode('latin-1')
+                status = status.encode(self.fallback_codec)
 
             assert type(status) is bytes, 'Status must be a string'
             assert len(status) >= 4, 'Status must be at least 4 characters'
@@ -853,9 +854,9 @@ class WSGIServer(object):
             new_response_headers = []
             for name, value in response_headers:
                 if isinstance(name, str):
-                    name = name.encode('latin-1')
+                    name = name.encode(self.fallback_codec)
                 if isinstance(value, str):
-                    value = value.encode('latin-1')
+                    value = value.encode(self.fallback_codec)
 
                 assert isinstance(name, bytes), (
                     'Header name "%s" must be bytes' % name)
