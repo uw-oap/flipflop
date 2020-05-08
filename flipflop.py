@@ -971,6 +971,9 @@ class WSGIServer(object):
 
             if rlist:
                 try:
+                    # 2020-05-08: eventually timeout the accept; otherwise httpd's reload signals are not
+                    # processed and zombie processes show up
+                    sock.settimeout(300)
                     client_socket, addr = sock.accept()
                 except socket.error as exception:
                     if exception.args[0] in (errno.EINTR, errno.EAGAIN):
