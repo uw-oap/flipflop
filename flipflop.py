@@ -975,6 +975,8 @@ class WSGIServer(object):
                     # processed and zombie processes show up
                     sock.settimeout(300)
                     client_socket, addr = sock.accept()
+                except socket.timeout as exception:
+                    continue
                 except socket.error as exception:
                     if exception.args[0] in (errno.EINTR, errno.EAGAIN):
                         continue
